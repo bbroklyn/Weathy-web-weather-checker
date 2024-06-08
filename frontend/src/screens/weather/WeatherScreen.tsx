@@ -1,4 +1,11 @@
-import { Button, Card, CardContent, TextField, Typography } from '@mui/material'
+import {
+	Button,
+	Card,
+	CardContent,
+	Grid,
+	TextField,
+	Typography,
+} from '@mui/material'
 import axios from 'axios'
 import * as React from 'react'
 import { useState } from 'react'
@@ -8,7 +15,7 @@ import '../../utils/background.css'
 const WeatherScreen: React.FC = () => {
 	const [city, setCity] = useState('')
 	const [weather, setWeather] = useState<any>(null)
-	// const [forecast, setForecast] = useState<any[]>([]) // Комментируем семидневный прогноз
+	const [forecast, setForecast] = useState<any[]>([])
 
 	const fetchWeather = async () => {
 		try {
@@ -16,13 +23,18 @@ const WeatherScreen: React.FC = () => {
 				`http://localhost:8000/api/weather?city=${city}`
 			)
 			setWeather(response.data)
-			// const forecastResponse = await axios.get( // Комментируем запрос для семидневного прогноза
-			// 	`http://localhost:8000/api/forecast?city=${city}`
-			// )
-			// setForecast(forecastResponse.data)
+			const forecastResponse = await axios.get(
+				`http://localhost:8000/api/forecast?city=${city}`
+			)
+			setForecast(forecastResponse.data.dailyForecasts)
 		} catch (error) {
 			console.error('Error fetching weather data:', error)
 		}
+	}
+
+	const formatDate = (timestamp: number) => {
+		const date = new Date(timestamp)
+		return date.toLocaleDateString()
 	}
 
 	return (
@@ -59,39 +71,31 @@ const WeatherScreen: React.FC = () => {
 						</CardContent>
 					</Card>
 				)}
-				{/* <div style={styles.forecastContainer}> // Комментируем семидневный прогноз
-					<Typography variant='h6'>7-Day Forecast</Typography>
-					<Card style={styles.forecastCard}>
-						<CardContent style={styles.forecastContent}>
-							<Grid
-								container
-								spacing={2}
-								direction='column'
-								style={styles.forecastGrid}
-							>
-								{forecast.map((day, index) => (
-									<React.Fragment key={index}>
-										<Grid item xs={12} style={styles.forecastDay}>
+				{forecast.length > 0 && (
+					<div style={styles.forecastContainer}>
+						<Typography variant='h6'>7-Day Forecast</Typography>
+						<Grid container spacing={2} style={styles.forecastGrid}>
+							{forecast.map((day, index) => (
+								<Grid item xs={12} sm={4} key={index}>
+									<Card style={styles.forecastCard}>
+										<CardContent style={styles.forecastContent}>
 											<Typography variant='body1'>
-												{new Date(day.dt * 1000).toLocaleDateString()}
-											</Typography>
-											<Typography variant='body2'>{day.temp.day}°C</Typography>
-											<Typography variant='body2'>
-												<FaWind /> {day.speed} m/s
+												{formatDate(day.date)}
 											</Typography>
 											<Typography variant='body2'>
-												{day.weather[0].description}
+												{day.temperature}°C
 											</Typography>
-										</Grid>
-										{index < forecast.length - 1 && (
-											<Divider style={styles.divider} />
-										)}
-									</React.Fragment>
-								))}
-							</Grid>
-						</CardContent>
-					</Card>
-				</div> */}
+											<Typography variant='body2'>
+												<FaWind /> {day.windSpeed} m/s
+											</Typography>
+											<Typography variant='body2'>{day.description}</Typography>
+										</CardContent>
+									</Card>
+								</Grid>
+							))}
+						</Grid>
+					</div>
+				)}
 			</div>
 		</div>
 	)
@@ -134,6 +138,21 @@ const styles = {
 		maxWidth: '300px',
 		borderRadius: '20px',
 		backgroundColor: '#f0f0f0',
+	},
+	forecastContainer: {
+		width: '100%',
+		maxWidth: '900px',
+	},
+	forecastGrid: {
+		width: '100%',
+	},
+	forecastCard: {
+		borderRadius: '20px',
+		backgroundColor: '#f0f0f0',
+	},
+	forecastContent: {
+		padding: '10px',
+		textAlign: 'center' as 'center',
 	},
 }
 

@@ -10,7 +10,7 @@ import ru.broklyn.weathy.service.WeatherService
 
 @RestController
 @RequestMapping("/api/weather")
-@CrossOrigin(origins = ["http://localhost:5173"]) // Замените на адрес вашего фронтенда
+@CrossOrigin(origins = ["http://localhost:5173"])
 class WeatherController(private val weatherService: WeatherService) {
 
     @GetMapping
