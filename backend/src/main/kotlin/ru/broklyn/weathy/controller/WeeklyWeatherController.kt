@@ -10,7 +10,10 @@ import ru.broklyn.weathy.service.WeatherService
 class WeeklyWeatherController(private val weatherService: WeatherService) {
 
     @GetMapping
-    fun getWeeklyWeather(@RequestParam city: String): WeeklyWeatherDTO? {
-        return weatherService.getWeeklyWeather(city)
+    fun getWeeklyWeather(
+        @RequestParam city: String,
+        @RequestParam(required = false, defaultValue = "en") lang: String
+    ): WeeklyWeatherDTO? {
+        return weatherService.getWeeklyWeather(city, lang)
     }
 }

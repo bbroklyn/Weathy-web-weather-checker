@@ -1,6 +1,5 @@
 package ru.broklyn.weathy.api.openweather
 
-import kotlinx.serialization.json.Json
 import org.springframework.beans.factory.annotation.Autowired
 import org.springframework.beans.factory.annotation.Value
 import org.springframework.stereotype.Component
@@ -13,14 +12,12 @@ class Requests @Autowired constructor(private val restTemplate: RestTemplate) {
     private lateinit var apiKey: String
 
     private val weatherUrl = "http://api.openweathermap.org/data/2.5/weather"
-    private val forecastUrl = "https://api.openweathermap.org/data/2.5/forecast"
+    private val forecastUrl = "https://api.openweathermap.org/data/2.5/onecall"
 
-    private val json = Json { ignoreUnknownKeys = true }
-
-    fun getCurrentWeather(city: String): WeatherDTO? {
-        val url = "$weatherUrl?q=$city&appid=$apiKey&units=metric"
+    fun getCurrentWeather(city: String, lang: String = "en"): WeatherDTO? {
+        val url = "$weatherUrl?q=$city&appid=$apiKey&units=metric&lang=$lang"
         val response = restTemplate.getForObject(url, String::class.java) ?: return null
-        val openWeatherResponse = json.decodeFromString<OpenWeatherResponse>(response)
+        val openWeatherResponse = deserializer.decodeFromString<OpenWeatherResponse>(response)
         return WeatherDTO(
             city = openWeatherResponse.name,
             temperature = openWeatherResponse.main.temp,
@@ -29,22 +26,26 @@ class Requests @Autowired constructor(private val restTemplate: RestTemplate) {
         )
     }
 
-    fun getWeeklyWeather(city: String): WeeklyWeatherDTO? {
-        val url = "$forecastUrl?q=$city&appid=$apiKey&units=metric&lang=en"
+    fun getWeeklyWeather(city: String, lang: String = "en"): WeeklyWeatherDTO? {
+        val latLonUrl = "$weatherUrl?q=$city&appid=$apiKey"
+        val latLonResponse = restTemplate.getForObject(latLonUrl, String::class.java) ?: return null
+        val openWeatherResponse = deserializer.decodeFromString<OpenWeatherResponse>(latLonResponse)
+        val lat = openWeatherResponse.coord.lat
+        val lon = openWeatherResponse.coord.lon
+
+        val url = "$forecastUrl?lat=$lat&lon=$lon&exclude=current,minutely,hourly,alerts&appid=$apiKey&units=metric&lang=$lang"
         val response = restTemplate.getForObject(url, String::class.java) ?: return null
-        val forecastResponse = json.decodeFromString<OpenWeatherForecastResponse>(response)
-        val dailyForecasts = forecastResponse.list.map { dailyForecast ->
-            WeatherDTO(
-                city = city,
+        val forecastResponse = deserializer.decodeFromString<OpenWeatherForecastResponse>(response)
+
+        val dailyForecasts = forecastResponse.daily.map { dailyForecast ->
+            DailyForecastDTO(
+                date = dailyForecast.dt * 1000,
                 temperature = dailyForecast.temp.day,
-                windSpeed = dailyForecast.speed,
+                windSpeed = dailyForecast.wind_speed,
                 description = dailyForecast.weather.firstOrNull()?.description ?: "No description"
             )
         }
-        return WeeklyWeatherDTO(
-            city = city,
-            dailyForecasts = dailyForecasts
-        )
-    }
 
+        return WeeklyWeatherDTO(city, dailyForecasts)
+    }
 }

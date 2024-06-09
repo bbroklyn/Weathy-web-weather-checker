@@ -1,34 +1,106 @@
-import { Button, Card, CardContent, TextField, Typography } from '@mui/material'
+import {
+	Button,
+	Card,
+	CardContent,
+	FormControl,
+	Grid,
+	InputLabel,
+	MenuItem,
+	Select,
+	Snackbar,
+	SnackbarContent,
+	TextField,
+	Typography,
+	useMediaQuery,
+	useTheme,
+} from '@mui/material'
 import axios from 'axios'
-import * as React from 'react'
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { FaWind } from 'react-icons/fa'
-import '../../utils/background.css'
+import { Languages } from '../../utils/Languages'
+import LanguageDialog from './LanguageDialog'
 
 const WeatherScreen: React.FC = () => {
 	const [city, setCity] = useState('')
+	const [language, setLanguage] = useState('en')
 	const [weather, setWeather] = useState<any>(null)
-	// const [forecast, setForecast] = useState<any[]>([]) // Комментируем семидневный прогноз
+	const [forecast, setForecast] = useState<any[]>([])
+	const [snackbarOpen, setSnackbarOpen] = useState(false) // Changed from error state
+	const [isLanguageDialogOpen, setIsLanguageDialogOpen] = useState(false)
+
+	const theme = useTheme()
+	const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
 
 	const fetchWeather = async () => {
 		try {
 			const response = await axios.get(
-				`http://localhost:8000/api/weather?city=${city}`
+				`http://localhost:8000/api/weather?city=${city}&lang=${language}`
 			)
 			setWeather(response.data)
-			// const forecastResponse = await axios.get( // Комментируем запрос для семидневного прогноза
-			// 	`http://localhost:8000/api/forecast?city=${city}`
-			// )
-			// setForecast(forecastResponse.data)
+			const forecastResponse = await axios.get(
+				`http://localhost:8000/api/forecast?city=${city}&lang=${language}`
+			)
+			setForecast(forecastResponse.data.dailyForecasts)
 		} catch (error) {
+			setSnackbarOpen(true) // Show Snackbar on error
 			console.error('Error fetching weather data:', error)
 		}
+	}
+
+	const formatDate = (timestamp: number) => {
+		const date = new Date(timestamp)
+		return date.toLocaleDateString()
 	}
 
 	return (
 		<div className='background'>
 			<div style={styles.container}>
-				<div style={styles.searchContainer}>
+				<LanguageDialog
+					open={isLanguageDialogOpen}
+					onClose={(selectedLanguage: string) => {
+						setLanguage(selectedLanguage)
+						setIsLanguageDialogOpen(false)
+					}}
+				/>
+				<Snackbar
+					anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+					open={snackbarOpen}
+					autoHideDuration={5000}
+					onClose={() => setSnackbarOpen(false)}
+				>
+					<SnackbarContent
+						message='Error fetching weather data'
+						style={{ backgroundColor: 'red' }} // Change background color to red
+					/>
+				</Snackbar>
+				{isMobile ? (
+					<Button
+						variant='contained'
+						color='primary'
+						onClick={() => setIsLanguageDialogOpen(true)}
+					>
+						Select Language
+					</Button>
+				) : (
+					<FormControl variant='outlined' style={styles.languageSelector}>
+						<InputLabel>Language</InputLabel>
+						<Select
+							value={language}
+							onChange={e => setLanguage(e.target.value as string)}
+							label='Language'
+							style={styles.Language}
+						>
+							{Object.entries(Languages.supportedLanguages).map(
+								([code, name]) => (
+									<MenuItem key={code} value={code}>
+										{name}
+									</MenuItem>
+								)
+							)}
+						</Select>
+					</FormControl>
+				)}
+				<div style={styles.inputContainer}>
 					<TextField
 						label='Enter city'
 						variant='outlined'
@@ -59,39 +131,31 @@ const WeatherScreen: React.FC = () => {
 						</CardContent>
 					</Card>
 				)}
-				{/* <div style={styles.forecastContainer}> // Комментируем семидневный прогноз
-					<Typography variant='h6'>7-Day Forecast</Typography>
-					<Card style={styles.forecastCard}>
-						<CardContent style={styles.forecastContent}>
-							<Grid
-								container
-								spacing={2}
-								direction='column'
-								style={styles.forecastGrid}
-							>
-								{forecast.map((day, index) => (
-									<React.Fragment key={index}>
-										<Grid item xs={12} style={styles.forecastDay}>
+				{forecast.length > 0 && (
+					<div style={styles.forecastContainer}>
+						<Typography variant='h6'>7-Day Forecast</Typography>
+						<Grid container spacing={2} style={styles.forecastGrid}>
+							{forecast.map((day, index) => (
+								<Grid item xs={12} sm={4} key={index}>
+									<Card style={styles.forecastCard}>
+										<CardContent style={styles.forecastContent}>
 											<Typography variant='body1'>
-												{new Date(day.dt * 1000).toLocaleDateString()}
-											</Typography>
-											<Typography variant='body2'>{day.temp.day}°C</Typography>
-											<Typography variant='body2'>
-												<FaWind /> {day.speed} m/s
+												{formatDate(day.date)}
 											</Typography>
 											<Typography variant='body2'>
-												{day.weather[0].description}
+												{day.temperature}°C
 											</Typography>
-										</Grid>
-										{index < forecast.length - 1 && (
-											<Divider style={styles.divider} />
-										)}
-									</React.Fragment>
-								))}
-							</Grid>
-						</CardContent>
-					</Card>
-				</div> */}
+											<Typography variant='body2'>
+												<FaWind /> {day.windSpeed} m/s
+											</Typography>
+											<Typography variant='body2'>{day.description}</Typography>
+										</CardContent>
+									</Card>
+								</Grid>
+							))}
+						</Grid>
+					</div>
+				)}
 			</div>
 		</div>
 	)
@@ -105,25 +169,26 @@ const styles = {
 		padding: '20px',
 		gap: '20px',
 	},
-	searchContainer: {
+	languageSelector: {
+		width: '100%',
+		maxWidth: '300px',
+	},
+	inputContainer: {
 		display: 'flex',
 		alignItems: 'center',
 		gap: '10px',
-		width: '100%',
-		justifyContent: 'center',
 	},
 	searchInput: {
 		width: '100%',
-		maxWidth: '300px',
 		backgroundColor: '#fff',
 		borderRadius: '4px',
 	},
 	inputProps: {
-		color: '#333',
-		backgroundColor: '#fff',
+		color: '#000000',
+		backgroundColor: '#ffffff',
 	},
 	inputLabelProps: {
-		color: '#333',
+		color: '#000000',
 	},
 	searchButton: {
 		fontSize: '16px',
@@ -134,6 +199,25 @@ const styles = {
 		maxWidth: '300px',
 		borderRadius: '20px',
 		backgroundColor: '#f0f0f0',
+	},
+	forecastContainer: {
+		width: '100%',
+		maxWidth: '900px',
+	},
+	forecastGrid: {
+		width: '100%',
+	},
+	forecastCard: {
+		borderRadius: '20px',
+		backgroundColor: '#f0f0f0',
+	},
+	forecastContent: {
+		padding: '10px',
+		textAlign: 'center' as 'center',
+	},
+	Language: {
+		color: '#000000',
+		backgroundColor: '#ffffff',
 	},
 }
 
