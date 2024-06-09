@@ -2,32 +2,47 @@ import {
 	Button,
 	Card,
 	CardContent,
+	FormControl,
 	Grid,
+	InputLabel,
+	MenuItem,
+	Select,
+	Snackbar,
+	SnackbarContent,
 	TextField,
 	Typography,
+	useMediaQuery,
+	useTheme,
 } from '@mui/material'
 import axios from 'axios'
-import * as React from 'react'
-import { useState } from 'react'
+import React, { useState } from 'react'
 import { FaWind } from 'react-icons/fa'
-import '../../utils/background.css'
+import { Languages } from '../../utils/Languages'
+import LanguageDialog from './LanguageDialog'
 
 const WeatherScreen: React.FC = () => {
 	const [city, setCity] = useState('')
+	const [language, setLanguage] = useState('en')
 	const [weather, setWeather] = useState<any>(null)
 	const [forecast, setForecast] = useState<any[]>([])
+	const [snackbarOpen, setSnackbarOpen] = useState(false) // Changed from error state
+	const [isLanguageDialogOpen, setIsLanguageDialogOpen] = useState(false)
+
+	const theme = useTheme()
+	const isMobile = useMediaQuery(theme.breakpoints.down('sm'))
 
 	const fetchWeather = async () => {
 		try {
 			const response = await axios.get(
-				`http://localhost:8000/api/weather?city=${city}`
+				`http://localhost:8000/api/weather?city=${city}&lang=${language}`
 			)
 			setWeather(response.data)
 			const forecastResponse = await axios.get(
-				`http://localhost:8000/api/forecast?city=${city}`
+				`http://localhost:8000/api/forecast?city=${city}&lang=${language}`
 			)
 			setForecast(forecastResponse.data.dailyForecasts)
 		} catch (error) {
+			setSnackbarOpen(true) // Show Snackbar on error
 			console.error('Error fetching weather data:', error)
 		}
 	}
@@ -40,7 +55,52 @@ const WeatherScreen: React.FC = () => {
 	return (
 		<div className='background'>
 			<div style={styles.container}>
-				<div style={styles.searchContainer}>
+				<LanguageDialog
+					open={isLanguageDialogOpen}
+					onClose={(selectedLanguage: string) => {
+						setLanguage(selectedLanguage)
+						setIsLanguageDialogOpen(false)
+					}}
+				/>
+				<Snackbar
+					anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+					open={snackbarOpen}
+					autoHideDuration={5000}
+					onClose={() => setSnackbarOpen(false)}
+				>
+					<SnackbarContent
+						message='Error fetching weather data'
+						style={{ backgroundColor: 'red' }} // Change background color to red
+					/>
+				</Snackbar>
+				{isMobile ? (
+					<Button
+						variant='contained'
+						color='primary'
+						onClick={() => setIsLanguageDialogOpen(true)}
+					>
+						Select Language
+					</Button>
+				) : (
+					<FormControl variant='outlined' style={styles.languageSelector}>
+						<InputLabel>Language</InputLabel>
+						<Select
+							value={language}
+							onChange={e => setLanguage(e.target.value as string)}
+							label='Language'
+							style={styles.Language}
+						>
+							{Object.entries(Languages.supportedLanguages).map(
+								([code, name]) => (
+									<MenuItem key={code} value={code}>
+										{name}
+									</MenuItem>
+								)
+							)}
+						</Select>
+					</FormControl>
+				)}
+				<div style={styles.inputContainer}>
 					<TextField
 						label='Enter city'
 						variant='outlined'
@@ -109,25 +169,26 @@ const styles = {
 		padding: '20px',
 		gap: '20px',
 	},
-	searchContainer: {
+	languageSelector: {
+		width: '100%',
+		maxWidth: '300px',
+	},
+	inputContainer: {
 		display: 'flex',
 		alignItems: 'center',
 		gap: '10px',
-		width: '100%',
-		justifyContent: 'center',
 	},
 	searchInput: {
 		width: '100%',
-		maxWidth: '300px',
 		backgroundColor: '#fff',
 		borderRadius: '4px',
 	},
 	inputProps: {
-		color: '#333',
-		backgroundColor: '#fff',
+		color: '#000000',
+		backgroundColor: '#ffffff',
 	},
 	inputLabelProps: {
-		color: '#333',
+		color: '#000000',
 	},
 	searchButton: {
 		fontSize: '16px',
@@ -153,6 +214,10 @@ const styles = {
 	forecastContent: {
 		padding: '10px',
 		textAlign: 'center' as 'center',
+	},
+	Language: {
+		color: '#000000',
+		backgroundColor: '#ffffff',
 	},
 }
 

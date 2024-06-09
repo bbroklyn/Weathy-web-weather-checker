@@ -8,11 +8,11 @@ import ru.broklyn.weathy.api.openweather.WeeklyWeatherDTO
 @Service
 class WeatherService(private val requests: Requests) {
 
-    fun getWeather(city: String): WeatherDTO? {
-        return requests.getCurrentWeather(city)
+    fun getWeather(city: String, lang: String): WeatherDTO? {
+        return requests.getCurrentWeather(city, lang)
     }
 
-    fun getWeeklyWeather(city: String): WeeklyWeatherDTO? {
-        return requests.getWeeklyWeather(city)
+    fun getWeeklyWeather(city: String, lang: String): WeeklyWeatherDTO? {
+        return requests.getWeeklyWeather(city, lang)
     }
 }
