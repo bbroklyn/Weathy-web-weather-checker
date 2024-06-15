@@ -117,7 +117,7 @@ const WeatherScreen: React.FC = () => {
 					</FormControl>
 				)}
 				<FormControl variant='outlined' style={styles.apiSelector}>
-					<InputLabel>API</InputLabel>
+					<InputLabel>Select API</InputLabel>
 					<Select
 						value={api}
 						onChange={e => setApi(e.target.value as string)}
