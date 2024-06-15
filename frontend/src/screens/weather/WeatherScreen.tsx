@@ -23,9 +23,10 @@ import LanguageDialog from './LanguageDialog'
 const WeatherScreen: React.FC = () => {
 	const [city, setCity] = useState('')
 	const [language, setLanguage] = useState('en')
+	const [api, setApi] = useState('OpenWeather')
 	const [weather, setWeather] = useState<any>(null)
 	const [forecast, setForecast] = useState<any[]>([])
-	const [snackbarOpen, setSnackbarOpen] = useState(false) // Changed from error state
+	const [snackbarOpen, setSnackbarOpen] = useState(false)
 	const [isLanguageDialogOpen, setIsLanguageDialogOpen] = useState(false)
 
 	const theme = useTheme()
@@ -33,22 +34,37 @@ const WeatherScreen: React.FC = () => {
 
 	const fetchWeather = async () => {
 		try {
-			const response = await axios.get(
-				`http://localhost:8000/api/weather?city=${city}&lang=${language}`
-			)
+			let weatherUrl = ''
+			let forecastUrl = ''
+
+			if (api === 'OpenWeather') {
+				weatherUrl = `http://localhost:8000/api/v1/openweather/daily?city=${city}&lang=${language}`
+				forecastUrl = `http://localhost:8000/api/v1/openweather/forecast?city=${city}&lang=${language}`
+			} else {
+				weatherUrl = `http://localhost:8000/api/v1/weatherapi/daily?city=${city}&lang=${language}`
+				forecastUrl = `http://localhost:8000/api/v1/weatherapi/forecast?city=${city}&lang=${language}`
+			}
+
+			const response = await axios.get(weatherUrl)
 			setWeather(response.data)
-			const forecastResponse = await axios.get(
-				`http://localhost:8000/api/forecast?city=${city}&lang=${language}`
+			console.log('Weather response:', response.data)
+
+			const forecastResponse = await axios.get(forecastUrl)
+			console.log('Forecast response:', forecastResponse.data)
+
+			setForecast(
+				api === 'OpenWeather'
+					? forecastResponse.data.dailyForecasts
+					: forecastResponse.data.forecastDays
 			)
-			setForecast(forecastResponse.data.dailyForecasts)
 		} catch (error) {
-			setSnackbarOpen(true) // Show Snackbar on error
+			setSnackbarOpen(true)
 			console.error('Error fetching weather data:', error)
 		}
 	}
 
-	const formatDate = (timestamp: number) => {
-		const date = new Date(timestamp)
+	const formatDate = (dateString: string) => {
+		const date = new Date(dateString)
 		return date.toLocaleDateString()
 	}
 
@@ -70,7 +86,7 @@ const WeatherScreen: React.FC = () => {
 				>
 					<SnackbarContent
 						message='Error fetching weather data'
-						style={{ backgroundColor: 'red' }} // Change background color to red
+						style={{ backgroundColor: 'red' }}
 					/>
 				</Snackbar>
 				{isMobile ? (
@@ -100,6 +116,18 @@ const WeatherScreen: React.FC = () => {
 						</Select>
 					</FormControl>
 				)}
+				<FormControl variant='outlined' style={styles.apiSelector}>
+					<InputLabel>API</InputLabel>
+					<Select
+						value={api}
+						onChange={e => setApi(e.target.value as string)}
+						label='API'
+						style={styles.Language}
+					>
+						<MenuItem value='OpenWeather'>OpenWeather</MenuItem>
+						<MenuItem value='WeatherAPI'>WeatherAPI</MenuItem>
+					</Select>
+				</FormControl>
 				<div style={styles.inputContainer}>
 					<TextField
 						label='Enter city'
@@ -123,11 +151,27 @@ const WeatherScreen: React.FC = () => {
 					<Card style={styles.card}>
 						<CardContent>
 							<Typography variant='h5'>{weather.city}</Typography>
-							<Typography variant='h6'>{weather.temperature}°C</Typography>
-							<Typography variant='body1'>
-								<FaWind /> {weather.windSpeed} m/s
-							</Typography>
-							<Typography variant='body2'>{weather.description}</Typography>
+							{api === 'OpenWeather' ? (
+								<>
+									<Typography variant='h6'>{weather.temperature}°C</Typography>
+									<Typography variant='body1'>
+										<FaWind /> {weather.windSpeed} m/s
+									</Typography>
+									<Typography variant='body2'>{weather.description}</Typography>
+								</>
+							) : (
+								<>
+									<Typography variant='h6'>
+										{weather.temperatureCelsius}°C
+									</Typography>
+									<Typography variant='body1'>
+										<FaWind /> {weather.windSpeedKph} kph
+									</Typography>
+									<Typography variant='body2'>
+										Humidity: {weather.humidity}%
+									</Typography>
+								</>
+							)}
 						</CardContent>
 					</Card>
 				)}
@@ -142,13 +186,23 @@ const WeatherScreen: React.FC = () => {
 											<Typography variant='body1'>
 												{formatDate(day.date)}
 											</Typography>
-											<Typography variant='body2'>
-												{day.temperature}°C
-											</Typography>
-											<Typography variant='body2'>
-												<FaWind /> {day.windSpeed} m/s
-											</Typography>
-											<Typography variant='body2'>{day.description}</Typography>
+											{api === 'OpenWeather' ? (
+												<>
+													<Typography variant='body2'>
+														{day.temperature}°C
+													</Typography>
+													<Typography variant='body2'>
+														<FaWind /> {day.windSpeed} m/s
+													</Typography>
+													<Typography variant='body2'>
+														{day.description}
+													</Typography>
+												</>
+											) : (
+												<Typography variant='body2'>
+													{day.temperatureCelsius}°C
+												</Typography>
+											)}
 										</CardContent>
 									</Card>
 								</Grid>
@@ -172,6 +226,11 @@ const styles = {
 	languageSelector: {
 		width: '100%',
 		maxWidth: '300px',
+	},
+	apiSelector: {
+		width: '100%',
+		maxWidth: '300px',
+		marginTop: '20px',
 	},
 	inputContainer: {
 		display: 'flex',

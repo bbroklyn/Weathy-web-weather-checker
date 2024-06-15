@@ -6,7 +6,7 @@ import org.springframework.stereotype.Component
 import org.springframework.web.client.RestTemplate
 
 @Component
-class Requests @Autowired constructor(private val restTemplate: RestTemplate) {
+class RequestsOpenWeather @Autowired constructor(private val restTemplate: RestTemplate) {
 
     @Value("\${api.openweather.key}")
     private lateinit var apiKey: String
