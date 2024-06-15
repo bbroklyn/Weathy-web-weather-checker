@@ -2,7 +2,7 @@
 
 Weathy is a web application for monitoring and analyzing weather conditions. The application consists of a frontend implemented in React using TypeScript, and a backend in Kotlin using the Spring Framework.
 
-### Version: 0.1.1
+### Version: 0.1.2
 
 ---
 
@@ -39,7 +39,6 @@ Weathy allows users to get up-to-date weather information for various regions, v
 
 - Node.js and npm
 - Java
-- PostgreSQL
 
 ### Installation Steps
 
@@ -72,6 +71,7 @@ Configure `resources/application.properties`
 spring.application.name=
 spring.autoconfigure.exclude=org.springframework.boot.autoconfigure.jdbc.DataSourceAutoConfiguration,org.springframework.boot.autoconfigure.orm.jpa.HibernateJpaAutoConfiguration
 api.openweather.key=
+api.weatherapi.key=
 server.port=8000
 ```
 
@@ -82,7 +82,7 @@ server.port=8000
 - [x] Add support for multiple languages
 - [ ] Implement push notification functionality
 - [ ] Improve user interface and UX
-- [ ] Integrate with external APIs for more accurate weather data
+- [x] Integrate with external APIs for more accurate weather data
 - [ ] Write tests for frontend and backend
 - [x] Correct forecast for 7 days
 - [x] Adaptive interface
