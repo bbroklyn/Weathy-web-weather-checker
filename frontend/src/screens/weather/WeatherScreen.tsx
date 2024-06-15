@@ -122,6 +122,7 @@ const WeatherScreen: React.FC = () => {
 						value={api}
 						onChange={e => setApi(e.target.value as string)}
 						label='API'
+						style={styles.Language}
 					>
 						<MenuItem value='OpenWeather'>OpenWeather</MenuItem>
 						<MenuItem value='WeatherAPI'>WeatherAPI</MenuItem>
